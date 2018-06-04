@@ -202,3 +202,4 @@ $RECYCLE.BIN/
 .idea/**/modules.xml
 .idea/**/vcs.xml
 data/*
+*.tfrecord
