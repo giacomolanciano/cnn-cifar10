@@ -5,7 +5,7 @@ import tensorflow as tf
 EPOCHS = 1000
 BATCH_SIZE = 128
 KEEP_PROB = 0.5
-CHECKPOINT_PATH = os.path.join('data', 'checkpoint')
+CHECKPOINT_PATH = 'cnn.ckpt'
 
 
 def main(argv=None):
@@ -20,7 +20,7 @@ def main(argv=None):
 
     ####################################################################################################################
 
-    # computational graph
+    # computation graph
     conv1 = tf.layers.conv2d(
         X, filters=64, kernel_size=(5, 5), strides=1, activation=tf.nn.relu, padding='same', name='conv1')
 

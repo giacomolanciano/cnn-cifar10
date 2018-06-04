@@ -203,3 +203,4 @@ $RECYCLE.BIN/
 .idea/**/vcs.xml
 data/*
 *.tfrecord
+*.ckpt
