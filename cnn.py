@@ -176,7 +176,7 @@ def main(argv=None):
         except tf.errors.OutOfRangeError:
             print('Test set has been consumed.')
 
-        test_accuracy = tf.reduce_mean(tf.convert_to_tensor(test_accuracy_collection))
+        test_accuracy = sess.run(tf.reduce_mean(tf.convert_to_tensor(test_accuracy_collection)))
         print('test accuracy:', test_accuracy)
 
         # store results
