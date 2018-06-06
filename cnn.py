@@ -1,11 +1,31 @@
-import os
 import tensorflow as tf
+from to_tfrecord import TRAINING_SET_PATH, TEST_SET_PATH
 
 
 EPOCHS = 1000
 BATCH_SIZE = 128
+CIFAR10_TEST_SIZE = 10000
 KEEP_PROB = 0.5
 CHECKPOINT_PATH = 'cnn.ckpt'
+
+
+def _parse_dataset_features(entry):
+    features = {
+        'label': tf.FixedLenFeature((), dtype=tf.int64, default_value=0),
+        'encoding': tf.FixedLenFeature((), dtype=tf.string, default_value='')
+    }
+    features_dict = tf.parse_single_example(entry, features)
+    label = features_dict['label']
+    image = tf.image.convert_image_dtype(tf.image.decode_png(features_dict['encoding']), dtype=tf.float32)
+    return image, label
+
+
+def load_dataset(dataset_filename, batch_size=None):
+    dataset = tf.data.TFRecordDataset(dataset_filename)
+    dataset = dataset.map(_parse_dataset_features)
+    if batch_size:
+        dataset = dataset.batch(batch_size)
+    return dataset
 
 
 def main(argv=None):
@@ -20,7 +40,7 @@ def main(argv=None):
 
     ####################################################################################################################
 
-    # computation graph
+    # init computation graph
     conv1 = tf.layers.conv2d(
         X, filters=64, kernel_size=(5, 5), strides=1, activation=tf.nn.relu, padding='same', name='conv1')
 
@@ -64,12 +84,13 @@ def main(argv=None):
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
 
-        # TODO load TFRecordDataset
+        # load TFRecordDataset
+        train_dataset = load_dataset(TRAINING_SET_PATH, batch_size=BATCH_SIZE)
+        iterator = train_dataset.make_one_shot_iterator()
 
         for epoch in range(EPOCHS):
-            # TODO get random batch from dataset
-            X_batch = None
-            y_batch = None
+            # get batch from dataset
+            X_batch, y_batch = iterator.get_next()
 
             sess.run(train_step, feed_dict={X: X_batch, y: y_batch, keep_prob: KEEP_PROB})
 
@@ -81,10 +102,12 @@ def main(argv=None):
                 # dump current state
                 model_saver.save(sess, CHECKPOINT_PATH, global_step=epoch)
 
+        # get test split from dataset
+        test_dataset = load_dataset(TEST_SET_PATH, batch_size=CIFAR10_TEST_SIZE)
+        iterator = test_dataset.make_one_shot_iterator()
+        X_test, y_test = iterator.get_next()
+
         # validation
-        # TODO get test split from dataset
-        X_test = None
-        y_test = None
         test_accuracy = sess.run(accuracy, feed_dict={X: X_test, y: y_test, keep_prob: 1.0})
         print('test accuracy: {}'.format(test_accuracy))
 
