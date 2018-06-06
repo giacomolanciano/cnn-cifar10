@@ -1,6 +1,7 @@
 import pickle
 from datetime import timedelta
 
+import os
 import tensorflow as tf
 import time
 import matplotlib.pyplot as plt
@@ -8,14 +9,15 @@ import matplotlib.pyplot as plt
 from to_tfrecord import TRAINING_SET_PATH, TEST_SET_PATH
 
 
+CIFAR10_CLASSES = 10
 CIFAR10_TRAIN_SIZE = 50000
 CIFAR10_TEST_SIZE = 10000
 EPOCHS = 1000
-BATCH_SIZE = 128
-KEEP_PROB = 0.5
-ACCURACY_SAMPLING = 50
+BATCH_SIZE = 40
 MODEL_CHECKPOINT_SAMPLING = 100
-CHECKPOINT_PATH = 'cnn.ckpt'
+ACCURACY_SAMPLING = 50
+CHECKPOINT_FILENAME = 'cnn.ckpt'
+KEEP_PROB = 0.5
 
 
 def _parse_dataset_features(entry):
@@ -24,7 +26,7 @@ def _parse_dataset_features(entry):
         'encoding': tf.FixedLenFeature((), dtype=tf.string, default_value='')
     }
     features_dict = tf.parse_single_example(entry, features)
-    label = features_dict['label']
+    label = tf.one_hot(features_dict['label'], depth=CIFAR10_CLASSES, dtype=tf.float32)
     image = tf.image.convert_image_dtype(tf.image.decode_png(features_dict['encoding']), dtype=tf.float32)
     return image, label
 
@@ -55,16 +57,21 @@ def plot_curve(curve, fig_name, fig_ext='.png'):
     plt.savefig(fig_zoom, bbox_inches='tight')
 
 
+def make_results_dir():
+    dirpath = 'data_' + str(int(time.time()))
+    os.makedirs(dirpath)
+    return dirpath
+
+
 def dump_results(results, results_filename):
     pickle.dump(results, open(results_filename, 'wb'))
 
 
 def main(argv=None):
+    tf.reset_default_graph()
+
     # variables
     global_step = tf.Variable(initial_value=0, name='global_step', trainable=False)
-
-    # placeholders
-    tf.reset_default_graph()
     X = tf.placeholder(tf.float32, [None, 32, 32, 3], name='input')
     y = tf.placeholder(tf.float32, [None, 10], name='labels')
     keep_prob = tf.placeholder(tf.float32)
@@ -109,6 +116,7 @@ def main(argv=None):
 
     ####################################################################################################################
 
+    RESULTS_DIR = make_results_dir()
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
 
@@ -121,33 +129,45 @@ def main(argv=None):
         training_accuracy_curve = []
         start_time = time.time()
         for epoch in range(EPOCHS):
-            # get batch from dataset
-            X_batch, y_batch = iterator.get_next()
+            print('##### Epoch {} #####'.format(epoch))
 
+            # get batch from dataset
+            try:
+                X_batch, y_batch = iterator.get_next()
+            except tf.errors.OutOfRangeError:
+                print('Training set has been consumed.')
+                break
+
+            X_batch, y_batch = X_batch.eval(session=sess), y_batch.eval(session=sess)
+
+            # train network
             sess.run(train_step, feed_dict={X: X_batch, y: y_batch, keep_prob: KEEP_PROB})
 
+            # compute accuracy
             if epoch % ACCURACY_SAMPLING == 0 or epoch == EPOCHS - 1:
                 epoch_accuracy = sess.run(accuracy, feed_dict={X: X_batch, y: y_batch, keep_prob: 1.0})
                 training_accuracy_curve.append(epoch_accuracy)
                 print('accuracy: {}'.format(epoch_accuracy))
 
+            # dump current state
             if epoch % MODEL_CHECKPOINT_SAMPLING == 0 or epoch == EPOCHS - 1:
-                # dump current state
-                model_saver.save(sess, CHECKPOINT_PATH, global_step=epoch)
+                checkpoint_path = os.path.join(RESULTS_DIR, CHECKPOINT_FILENAME)
+                model_saver.save(sess, checkpoint_path, global_step=epoch)
 
         # collect training results
         elapsed_time = (time.time() - start_time)
         training_seconds = timedelta(seconds=elapsed_time)
         print('training time:', training_seconds, 'seconds')
         print('training accuracy curve:', training_accuracy_curve)
-        plot_curve(training_accuracy_curve, fig_name='train_accuracy')
+        plot_curve(training_accuracy_curve, fig_name=os.path.join(RESULTS_DIR, 'train_accuracy'))
 
         # get test split from dataset
-        test_dataset = load_dataset(TEST_SET_PATH, batch_size=CIFAR10_TEST_SIZE)
+        test_dataset = load_dataset(TEST_SET_PATH, batch_size=CIFAR10_TEST_SIZE-1)
         iterator = test_dataset.make_one_shot_iterator()
         X_test, y_test = iterator.get_next()
+        X_test, y_test = X_test.eval(session=sess), y_test.eval(session=sess)
 
-        # validation
+        print('\n\n##### Validation #####')
         test_accuracy = sess.run(accuracy, feed_dict={X: X_test, y: y_test, keep_prob: 1.0})
         print('test accuracy:', test_accuracy)
 
@@ -156,7 +176,7 @@ def main(argv=None):
         results['training_seconds'] = training_seconds
         results['training_accuracy_curve'] = training_accuracy_curve
         results['test_accuracy'] = test_accuracy
-        dump_results(results, 'results.pickle')
+        dump_results(results, os.path.join(RESULTS_DIR, 'results.pickle'))
 
 
 if __name__ == '__main__':

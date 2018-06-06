@@ -201,6 +201,6 @@ $RECYCLE.BIN/
 .idea/**/misc.xml
 .idea/**/modules.xml
 .idea/**/vcs.xml
-data/*
+data*/
 *.tfrecord
 *.ckpt
