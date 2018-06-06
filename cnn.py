@@ -120,7 +120,7 @@ def main(argv=None):
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
 
-        # load TFRecordDataset
+        # load training dataset
         train_dataset = load_dataset(TRAINING_SET_PATH, batch_size=BATCH_SIZE)
         iterator = train_dataset.make_one_shot_iterator()
         next_elem = iterator.get_next()
@@ -160,14 +160,23 @@ def main(argv=None):
         print('training accuracy curve:', training_accuracy_curve)
         plot_curve(training_accuracy_curve, fig_name=os.path.join(RESULTS_DIR, 'train_accuracy'))
 
-        # get test split from dataset
-        test_dataset = load_dataset(TEST_SET_PATH, batch_size=CIFAR10_TEST_SIZE-1)
-        iterator = test_dataset.make_one_shot_iterator()
-        next_elem = iterator.get_next()
-        X_test, y_test = sess.run(next_elem)
+    ####################################################################################################################
 
         print('\n\n##### Validation #####')
-        test_accuracy = sess.run(accuracy, feed_dict={X: X_test, y: y_test, keep_prob: 1.0})
+        # load test dataset
+        test_dataset = load_dataset(TEST_SET_PATH, batch_size=100)
+        iterator = test_dataset.make_one_shot_iterator()
+        next_elem = iterator.get_next()
+
+        test_accuracy_collection = []
+        try:
+            while True:
+                X_test, y_test = sess.run(next_elem)
+                test_accuracy_collection.append(sess.run(accuracy, feed_dict={X: X_test, y: y_test, keep_prob: 1.0}))
+        except tf.errors.OutOfRangeError:
+            print('Test set has been consumed.')
+
+        test_accuracy = tf.reduce_mean(tf.convert_to_tensor(test_accuracy_collection))
         print('test accuracy:', test_accuracy)
 
         # store results
