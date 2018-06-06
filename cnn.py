@@ -123,6 +123,7 @@ def main(argv=None):
         # load TFRecordDataset
         train_dataset = load_dataset(TRAINING_SET_PATH, batch_size=BATCH_SIZE)
         iterator = train_dataset.make_one_shot_iterator()
+        next_elem = iterator.get_next()
 
         # training sessions
         model_saver = tf.train.Saver()
@@ -133,26 +134,24 @@ def main(argv=None):
 
             # get batch from dataset
             try:
-                X_batch, y_batch = iterator.get_next()
+                X_batch, y_batch = sess.run(next_elem)
+
+                # train network
+                sess.run(train_step, feed_dict={X: X_batch, y: y_batch, keep_prob: KEEP_PROB})
+
+                # compute accuracy
+                if epoch % ACCURACY_SAMPLING == 0 or epoch == EPOCHS - 1:
+                    epoch_accuracy = sess.run(accuracy, feed_dict={X: X_batch, y: y_batch, keep_prob: 1.0})
+                    training_accuracy_curve.append(epoch_accuracy)
+                    print('accuracy: {}'.format(epoch_accuracy))
+
+                # dump current state
+                if epoch % MODEL_CHECKPOINT_SAMPLING == 0 or epoch == EPOCHS - 1:
+                    checkpoint_path = os.path.join(RESULTS_DIR, CHECKPOINT_FILENAME)
+                    model_saver.save(sess, checkpoint_path, global_step=epoch)
+
             except tf.errors.OutOfRangeError:
                 print('Training set has been consumed.')
-                break
-
-            X_batch, y_batch = X_batch.eval(session=sess), y_batch.eval(session=sess)
-
-            # train network
-            sess.run(train_step, feed_dict={X: X_batch, y: y_batch, keep_prob: KEEP_PROB})
-
-            # compute accuracy
-            if epoch % ACCURACY_SAMPLING == 0 or epoch == EPOCHS - 1:
-                epoch_accuracy = sess.run(accuracy, feed_dict={X: X_batch, y: y_batch, keep_prob: 1.0})
-                training_accuracy_curve.append(epoch_accuracy)
-                print('accuracy: {}'.format(epoch_accuracy))
-
-            # dump current state
-            if epoch % MODEL_CHECKPOINT_SAMPLING == 0 or epoch == EPOCHS - 1:
-                checkpoint_path = os.path.join(RESULTS_DIR, CHECKPOINT_FILENAME)
-                model_saver.save(sess, checkpoint_path, global_step=epoch)
 
         # collect training results
         elapsed_time = (time.time() - start_time)
@@ -164,8 +163,8 @@ def main(argv=None):
         # get test split from dataset
         test_dataset = load_dataset(TEST_SET_PATH, batch_size=CIFAR10_TEST_SIZE-1)
         iterator = test_dataset.make_one_shot_iterator()
-        X_test, y_test = iterator.get_next()
-        X_test, y_test = X_test.eval(session=sess), y_test.eval(session=sess)
+        next_elem = iterator.get_next()
+        X_test, y_test = sess.run(next_elem)
 
         print('\n\n##### Validation #####')
         test_accuracy = sess.run(accuracy, feed_dict={X: X_test, y: y_test, keep_prob: 1.0})
