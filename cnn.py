@@ -106,6 +106,8 @@ def main(argv=None):
                 # dump current state
                 model_saver.save(sess, CHECKPOINT_PATH, global_step=epoch)
 
+        print('accuracy curve:', accuracy_curve)
+
         # get test split from dataset
         test_dataset = load_dataset(TEST_SET_PATH, batch_size=CIFAR10_TEST_SIZE)
         iterator = test_dataset.make_one_shot_iterator()
