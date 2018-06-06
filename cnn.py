@@ -4,6 +4,7 @@ from to_tfrecord import TRAINING_SET_PATH, TEST_SET_PATH
 
 EPOCHS = 1000
 BATCH_SIZE = 128
+CIFAR10_TRAIN_SIZE = 50000
 CIFAR10_TEST_SIZE = 10000
 KEEP_PROB = 0.5
 CHECKPOINT_PATH = 'cnn.ckpt'
@@ -20,11 +21,14 @@ def _parse_dataset_features(entry):
     return image, label
 
 
-def load_dataset(dataset_filename, batch_size=None):
+def load_dataset(dataset_filename, batch_size=None, take=None):
     dataset = tf.data.TFRecordDataset(dataset_filename)
     dataset = dataset.map(_parse_dataset_features)
+    dataset = dataset.shuffle(CIFAR10_TRAIN_SIZE)
     if batch_size:
         dataset = dataset.batch(batch_size)
+    if take:
+        dataset = dataset.take(take)
     return dataset
 
 
@@ -71,12 +75,12 @@ def main(argv=None):
 
     output = tf.layers.dense(dense2, units=10, activation=tf.nn.relu, name='output')
 
-    ####################################################################################################################
-
     # functions
     loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=output, labels=y))
     train_step = tf.train.GradientDescentOptimizer(0.01).minimize(loss, global_step=global_step)
     accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(output, 1), tf.argmax(y, 1)), tf.float32), name='accuracy')
+
+    ####################################################################################################################
 
     # training sessions
     model_saver = tf.train.Saver()
