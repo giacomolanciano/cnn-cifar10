@@ -121,9 +121,9 @@ def main(argv=None):
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
 
-        # load training dataset (uniformly shuffled, by considering a shuffle buffer bigger than its size)
+        # load training dataset
         train_dataset = load_dataset(
-            TRAINING_SET_PATH, shuffle_buffer=CIFAR10_TRAIN_SIZE + 1, batch_size=BATCH_SIZE, repeat=-1)
+            TRAINING_SET_PATH, shuffle_buffer=CIFAR10_TRAIN_SIZE // 2, batch_size=BATCH_SIZE, repeat=-1)
         iterator = train_dataset.make_one_shot_iterator()
         next_elem = iterator.get_next()
 
