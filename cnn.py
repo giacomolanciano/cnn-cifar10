@@ -16,7 +16,7 @@ CIFAR10_TEST_SIZE = 10000
 EPOCHS = 1000
 BATCH_SIZE = 128
 KEEP_PROB_CONV = 0.8
-KEEP_PROB_DENSE = 0.5
+KEEP_PROB_DENSE = 0.8
 LEARNING_RATE = 0.01
 
 CONV_LAYER_PARAMS_1 = {
@@ -129,23 +129,23 @@ def main(argv=None):
     # convolutional layers
     conv1 = tf.layers.conv2d(X, name='conv1', **CONV_LAYER_PARAMS_1)
     conv1_maxpool = tf.layers.max_pooling2d(conv1, name='conv1_maxpool', **MAXPOOL_LAYER_PARAMS)
-    conv1_dropout = tf.nn.dropout(conv1_maxpool, name='conv1_dropout', keep_prob=keep_prob_conv)
 
-    conv2 = tf.layers.conv2d(conv1_dropout, name='conv2', **CONV_LAYER_PARAMS_2)
+    conv2 = tf.layers.conv2d(conv1_maxpool, name='conv2', **CONV_LAYER_PARAMS_2)
+    conv2_dropout = tf.nn.dropout(conv2, name='conv2_dropout', keep_prob=keep_prob_conv)
 
-    conv3 = tf.layers.conv2d(conv2, name='conv3', **CONV_LAYER_PARAMS_2)
+    conv3 = tf.layers.conv2d(conv2_dropout, name='conv3', **CONV_LAYER_PARAMS_2)
     conv3_maxpool = tf.layers.max_pooling2d(conv3, name='conv3_maxpool', **MAXPOOL_LAYER_PARAMS)
-    conv3_dropout = tf.nn.dropout(conv3_maxpool, name='conv3_dropout', keep_prob=keep_prob_conv)
 
-    conv4 = tf.layers.conv2d(conv3_dropout, name='conv4', **CONV_LAYER_PARAMS_3)
+    conv4 = tf.layers.conv2d(conv3_maxpool, name='conv4', **CONV_LAYER_PARAMS_3)
+    conv4_dropout = tf.nn.dropout(conv4, name='conv4_dropout', keep_prob=keep_prob_conv)
 
-    conv5 = tf.layers.conv2d(conv4, name='conv5', **CONV_LAYER_PARAMS_3)
-    conv5_maxpool = tf.layers.max_pooling2d(conv5, name='conv5_maxpool', **MAXPOOL_LAYER_PARAMS)
-    conv5_dropout = tf.nn.dropout(conv5_maxpool, name='conv5_dropout', keep_prob=keep_prob_conv)
+    conv5 = tf.layers.conv2d(conv4_dropout, name='conv5', **CONV_LAYER_PARAMS_3)
+    conv5_dropout = tf.nn.dropout(conv5, name='conv5_dropout', keep_prob=keep_prob_conv)
+    conv5_maxpool = tf.layers.max_pooling2d(conv5_dropout, name='conv5_maxpool', **MAXPOOL_LAYER_PARAMS)
 
     # fully-connected layers
     dense1 = tf.layers.dense(
-        tf.reshape(conv5_dropout, [-1, conv5_dropout.shape[1] * conv5_dropout.shape[2] * conv5_dropout.shape[3]]),
+        tf.reshape(conv5_maxpool, [-1, conv5_maxpool.shape[1] * conv5_maxpool.shape[2] * conv5_maxpool.shape[3]]),
         name='dense1', **DENSE_LAYER_PARAMS_1)
     dense1_dropout = tf.nn.dropout(dense1, name='dense1_dropout', keep_prob=keep_prob_dense)
 
