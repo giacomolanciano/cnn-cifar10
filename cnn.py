@@ -108,7 +108,7 @@ def main(argv=None):
     dense2 = tf.layers.dense(dense1, units=4096, activation=tf.nn.relu, name='dense2')
     dense2 = tf.nn.dropout(dense2, keep_prob=keep_prob)
 
-    output = tf.layers.dense(dense2, units=10, activation=tf.nn.relu, name='output')
+    output = tf.layers.dense(dense2, units=10, name='output')
 
     # functions
     loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=output, labels=y))
