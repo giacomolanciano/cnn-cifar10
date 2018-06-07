@@ -18,6 +18,26 @@ MODEL_CHECKPOINT_SAMPLING = 100
 ACCURACY_SAMPLING = 10
 CHECKPOINT_FILENAME = 'cnn.ckpt'
 KEEP_PROB = 0.5
+LEARNING_RATE = 0.01
+
+CONV_LAYER_PARAMS = {
+    "filters": 2048,
+    "kernel_size": (5, 5),
+    "strides": 1,
+    "activation": tf.nn.relu,
+    "padding": 'same'
+}
+
+MAXPOOL_LAYER_PARAMS = {
+    "pool_size": (2, 2),
+    "strides": 2,
+    "padding": 'same'
+}
+
+DENSE_LAYER_PARAMS = {
+    "units": 4096,
+    "activation": tf.nn.relu
+}
 
 
 def _parse_dataset_features(entry):
@@ -74,49 +94,40 @@ def main(argv=None):
     # variables
     global_step = tf.Variable(initial_value=0, name='global_step', trainable=False)
     X = tf.placeholder(tf.float32, [None, 32, 32, 3], name='input')
-    y = tf.placeholder(tf.float32, [None, 10], name='labels')
+    y = tf.placeholder(tf.float32, [None, CIFAR10_CLASSES], name='labels')
     keep_prob = tf.placeholder(tf.float32)
 
     ####################################################################################################################
 
-    # init computation graph
-    conv1 = tf.layers.conv2d(
-        X, filters=128, kernel_size=(5, 5), strides=1, activation=tf.nn.relu, padding='same', name='conv1')
+    # convolutional layers
+    conv1 = tf.layers.conv2d(X, name='conv1', **CONV_LAYER_PARAMS)
+    maxpool1 = tf.layers.max_pooling2d(conv1, name='maxpool1', **MAXPOOL_LAYER_PARAMS)
 
-    maxpool1 = tf.layers.max_pooling2d(conv1, pool_size=(2, 2), strides=2, padding='same', name='maxpool1')
+    conv2 = tf.layers.conv2d(maxpool1, name='conv2', **CONV_LAYER_PARAMS)
+    maxpool2 = tf.layers.max_pooling2d(conv2, name='maxpool2', **MAXPOOL_LAYER_PARAMS)
 
-    conv2 = tf.layers.conv2d(
-        maxpool1, filters=128, kernel_size=(5, 5), strides=1, activation=tf.nn.relu, padding='same', name='conv2')
+    conv3 = tf.layers.conv2d(maxpool2, name='conv3', **CONV_LAYER_PARAMS)
+    maxpool3 = tf.layers.max_pooling2d(conv3, name='maxpool3', **MAXPOOL_LAYER_PARAMS)
 
-    maxpool2 = tf.layers.max_pooling2d(conv2, pool_size=(2, 2), strides=2, padding='same', name='maxpool2')
+    conv4 = tf.layers.conv2d(maxpool3, name='conv4', **CONV_LAYER_PARAMS)
+    maxpool4 = tf.layers.max_pooling2d(conv4, name='maxpool4', **MAXPOOL_LAYER_PARAMS)
 
-    conv3 = tf.layers.conv2d(
-        maxpool2, filters=128, kernel_size=(5, 5), strides=1, activation=tf.nn.relu, padding='same', name='conv3')
+    conv5 = tf.layers.conv2d(maxpool4, name='conv5', **CONV_LAYER_PARAMS)
+    maxpool5 = tf.layers.max_pooling2d(conv5, name='maxpool5', **MAXPOOL_LAYER_PARAMS)
 
-    maxpool3 = tf.layers.max_pooling2d(conv3, pool_size=(2, 2), strides=2, padding='same', name='maxpool2')
+    # fully-connected layers
+    new_shape = [-1, maxpool5.shape[1] * maxpool5.shape[2] * maxpool5.shape[3]]
+    dense1 = tf.layers.dense(tf.reshape(maxpool5, new_shape), name='dense1', **DENSE_LAYER_PARAMS)
+    dense1_dropout = tf.nn.dropout(dense1, name='dense1_dropout', keep_prob=keep_prob)
 
-    conv4 = tf.layers.conv2d(
-        maxpool3, filters=128, kernel_size=(5, 5), strides=1, activation=tf.nn.relu, padding='same', name='conv4')
+    dense2 = tf.layers.dense(dense1_dropout, name='dense2', **DENSE_LAYER_PARAMS)
+    dense2_dropout = tf.nn.dropout(dense2, name='dense2_dropout', keep_prob=keep_prob)
 
-    maxpool4 = tf.layers.max_pooling2d(conv4, pool_size=(2, 2), strides=2, padding='same', name='maxpool2')
-
-    conv5 = tf.layers.conv2d(
-        maxpool4, filters=128, kernel_size=(5, 5), strides=1, activation=tf.nn.relu, padding='same', name='conv5')
-
-    maxpool5 = tf.layers.max_pooling2d(conv5, pool_size=(2, 2), strides=2, padding='same', name='maxpool5')
-
-    dense1 = tf.layers.dense(
-        tf.reshape(maxpool5, [-1, 128]), units=4096, activation=tf.nn.relu, name='dense1')
-    dense1_dropout = tf.nn.dropout(dense1, keep_prob=keep_prob, name='dense1_dropout')
-
-    dense2 = tf.layers.dense(dense1_dropout, units=4096, activation=tf.nn.relu, name='dense2')
-    dense2_dropout = tf.nn.dropout(dense2, keep_prob=keep_prob, name='dense2_dropout')
-
-    output = tf.layers.dense(dense2_dropout, units=CIFAR10_CLASSES, name='output')
+    output = tf.layers.dense(dense2_dropout, name='output', units=CIFAR10_CLASSES)
 
     # functions
     loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=output, labels=y))
-    train_step = tf.train.AdamOptimizer(0.01).minimize(loss, global_step=global_step)
+    train_step = tf.train.AdamOptimizer(LEARNING_RATE).minimize(loss, global_step=global_step)
     accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(output, 1), tf.argmax(y, 1)), tf.float32), name='accuracy')
 
     ####################################################################################################################
@@ -166,11 +177,11 @@ def main(argv=None):
         print('training accuracy curve:', training_accuracy_curve)
         plot_curve(training_accuracy_curve, fig_name=os.path.join(RESULTS_DIR, 'train_accuracy'))
 
-    ####################################################################################################################
+        ################################################################################################################
 
         print('\n\n##### Validation #####')
         # load test dataset
-        test_dataset = load_dataset(TEST_SET_PATH, batch_size=100)
+        test_dataset = load_dataset(TEST_SET_PATH, batch_size=BATCH_SIZE)
         iterator = test_dataset.make_one_shot_iterator()
         next_elem = iterator.get_next()
 
