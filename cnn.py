@@ -13,7 +13,7 @@ CIFAR10_CLASSES = 10
 CIFAR10_TRAIN_SIZE = 50000
 CIFAR10_TEST_SIZE = 10000
 EPOCHS = 1000
-BATCH_SIZE = 40
+BATCH_SIZE = 150
 MODEL_CHECKPOINT_SAMPLING = 100
 ACCURACY_SAMPLING = 10
 CHECKPOINT_FILENAME = 'cnn.ckpt'
@@ -31,14 +31,15 @@ def _parse_dataset_features(entry):
     return image, label
 
 
-def load_dataset(dataset_filename, batch_size=None, take=None):
+def load_dataset(dataset_filename, shuffle_buffer=None, batch_size=None, repeat=None):
     dataset = tf.data.TFRecordDataset(dataset_filename)
     dataset = dataset.map(_parse_dataset_features)
-    dataset = dataset.shuffle(CIFAR10_TRAIN_SIZE)
+    if shuffle_buffer:
+        dataset = dataset.shuffle(buffer_size=shuffle_buffer)
     if batch_size:
         dataset = dataset.batch(batch_size)
-    if take:
-        dataset = dataset.take(take)
+    if repeat:
+        dataset = dataset.repeat(repeat)
     return dataset
 
 
@@ -120,8 +121,9 @@ def main(argv=None):
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
 
-        # load training dataset
-        train_dataset = load_dataset(TRAINING_SET_PATH, batch_size=BATCH_SIZE)
+        # load training dataset (uniformly shuffled, by considering a shuffle buffer bigger than its size)
+        train_dataset = load_dataset(
+            TRAINING_SET_PATH, shuffle_buffer=CIFAR10_TRAIN_SIZE + 1, batch_size=BATCH_SIZE, repeat=-1)
         iterator = train_dataset.make_one_shot_iterator()
         next_elem = iterator.get_next()
 
