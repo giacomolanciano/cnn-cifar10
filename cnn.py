@@ -172,8 +172,8 @@ def main(argv=None):
 
         # collect training results
         elapsed_time = (time.time() - start_time)
-        training_seconds = timedelta(seconds=elapsed_time)
-        print('training time:', training_seconds, 'seconds')
+        training_time = timedelta(seconds=elapsed_time)
+        print('training time:', training_time)
         print('training accuracy curve:', training_accuracy_curve)
         plot_curve(training_accuracy_curve, fig_name=os.path.join(RESULTS_DIR, 'train_accuracy'))
 
@@ -198,7 +198,7 @@ def main(argv=None):
 
         # store results
         results = dict()
-        results['training_seconds'] = training_seconds
+        results['training_time'] = training_time
         results['training_accuracy_curve'] = training_accuracy_curve
         results['test_accuracy'] = test_accuracy
         dump_results(results, os.path.join(RESULTS_DIR, 'results.pickle'))
