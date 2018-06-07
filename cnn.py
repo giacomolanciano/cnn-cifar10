@@ -81,9 +81,9 @@ def main(argv=None):
 
     # init computation graph
     conv1 = tf.layers.conv2d(
-        X, filters=64, kernel_size=(5, 5), strides=1, activation=tf.nn.relu, padding='same', name='conv1')
+        X, filters=128, kernel_size=(5, 5), strides=1, activation=tf.nn.relu, padding='same', name='conv1')
 
-    maxpool1 = tf.layers.max_pooling2d(conv1, pool_size=(3, 3), strides=1, padding='same', name='maxpool1')
+    maxpool1 = tf.layers.max_pooling2d(conv1, pool_size=(2, 2), strides=2, padding='same', name='maxpool1')
 
     conv2 = tf.layers.conv2d(
         maxpool1, filters=128, kernel_size=(5, 5), strides=1, activation=tf.nn.relu, padding='same', name='conv2')
@@ -91,24 +91,28 @@ def main(argv=None):
     maxpool2 = tf.layers.max_pooling2d(conv2, pool_size=(2, 2), strides=2, padding='same', name='maxpool2')
 
     conv3 = tf.layers.conv2d(
-        maxpool2, filters=192, kernel_size=(3, 3), strides=1, activation=tf.nn.relu, padding='same', name='conv3')
+        maxpool2, filters=128, kernel_size=(5, 5), strides=1, activation=tf.nn.relu, padding='same', name='conv3')
+
+    maxpool3 = tf.layers.max_pooling2d(conv3, pool_size=(2, 2), strides=2, padding='same', name='maxpool2')
 
     conv4 = tf.layers.conv2d(
-        conv3, filters=192, kernel_size=(3, 3), strides=1, activation=tf.nn.relu, padding='same', name='conv4')
+        maxpool3, filters=128, kernel_size=(5, 5), strides=1, activation=tf.nn.relu, padding='same', name='conv4')
+
+    maxpool4 = tf.layers.max_pooling2d(conv4, pool_size=(2, 2), strides=2, padding='same', name='maxpool2')
 
     conv5 = tf.layers.conv2d(
-        conv4, filters=128, kernel_size=(3, 3), strides=1, activation=tf.nn.relu, padding='same', name='conv5')
+        maxpool4, filters=128, kernel_size=(5, 5), strides=1, activation=tf.nn.relu, padding='same', name='conv5')
 
-    maxpool3 = tf.layers.max_pooling2d(conv5, pool_size=(2, 2), strides=1, padding='same', name='maxpool3')
+    maxpool5 = tf.layers.max_pooling2d(conv5, pool_size=(2, 2), strides=2, padding='same', name='maxpool5')
 
     dense1 = tf.layers.dense(
-        tf.reshape(maxpool3, [-1, 16 * 16 * 128]), units=4096, activation=tf.nn.relu, name='dense1')
-    dense1 = tf.nn.dropout(dense1, keep_prob=keep_prob)
+        tf.reshape(maxpool5, [-1, 128]), units=4096, activation=tf.nn.relu, name='dense1')
+    dense1_dropout = tf.nn.dropout(dense1, keep_prob=keep_prob, name='dense1_dropout')
 
-    dense2 = tf.layers.dense(dense1, units=4096, activation=tf.nn.relu, name='dense2')
-    dense2 = tf.nn.dropout(dense2, keep_prob=keep_prob)
+    dense2 = tf.layers.dense(dense1_dropout, units=4096, activation=tf.nn.relu, name='dense2')
+    dense2_dropout = tf.nn.dropout(dense2, keep_prob=keep_prob, name='dense2_dropout')
 
-    output = tf.layers.dense(dense2, units=10, name='output')
+    output = tf.layers.dense(dense2_dropout, units=CIFAR10_CLASSES, name='output')
 
     # functions
     loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=output, labels=y))
