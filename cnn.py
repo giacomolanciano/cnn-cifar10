@@ -47,7 +47,7 @@ def _parse_dataset_features(entry):
     }
     features_dict = tf.parse_single_example(entry, features)
     label = tf.one_hot(features_dict['label'], depth=CIFAR10_CLASSES, dtype=tf.float32)
-    image = tf.image.convert_image_dtype(tf.image.decode_png(features_dict['encoding']), dtype=tf.float32)
+    image = tf.image.convert_image_dtype(tf.image.decode_png(features_dict['encoding'], channels=3), dtype=tf.float32)
     return image, label
 
 
