@@ -21,7 +21,7 @@ KEEP_PROB = 0.5
 LEARNING_RATE = 0.01
 
 CONV_LAYER_PARAMS = {
-    "filters": 2048,
+    "filters": 64,
     "kernel_size": (5, 5),
     "strides": 1,
     "activation": tf.nn.relu,
@@ -35,7 +35,7 @@ MAXPOOL_LAYER_PARAMS = {
 }
 
 DENSE_LAYER_PARAMS = {
-    "units": 4096,
+    "units": 1024,
     "activation": tf.nn.relu
 }
 
