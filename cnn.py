@@ -111,7 +111,7 @@ def main(argv=None):
 
     # functions
     loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=output, labels=y))
-    train_step = tf.train.GradientDescentOptimizer(0.01).minimize(loss, global_step=global_step)
+    train_step = tf.train.AdamOptimizer(0.01).minimize(loss, global_step=global_step)
     accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(output, 1), tf.argmax(y, 1)), tf.float32), name='accuracy')
 
     ####################################################################################################################
