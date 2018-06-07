@@ -132,16 +132,14 @@ def main(argv=None):
     conv1_dropout = tf.nn.dropout(conv1_maxpool, name='conv1_dropout', keep_prob=keep_prob_conv)
 
     conv2 = tf.layers.conv2d(conv1_dropout, name='conv2', **CONV_LAYER_PARAMS_2)
-    conv2_maxpool = tf.layers.max_pooling2d(conv2, name='conv2_maxpool', **MAXPOOL_LAYER_PARAMS)
 
-    conv3 = tf.layers.conv2d(conv2_maxpool, name='conv3', **CONV_LAYER_PARAMS_2)
+    conv3 = tf.layers.conv2d(conv2, name='conv3', **CONV_LAYER_PARAMS_2)
     conv3_maxpool = tf.layers.max_pooling2d(conv3, name='conv3_maxpool', **MAXPOOL_LAYER_PARAMS)
     conv3_dropout = tf.nn.dropout(conv3_maxpool, name='conv3_dropout', keep_prob=keep_prob_conv)
 
     conv4 = tf.layers.conv2d(conv3_dropout, name='conv4', **CONV_LAYER_PARAMS_3)
-    conv4_maxpool = tf.layers.max_pooling2d(conv4, name='conv4_maxpool', **MAXPOOL_LAYER_PARAMS)
 
-    conv5 = tf.layers.conv2d(conv4_maxpool, name='conv5', **CONV_LAYER_PARAMS_3)
+    conv5 = tf.layers.conv2d(conv4, name='conv5', **CONV_LAYER_PARAMS_3)
     conv5_maxpool = tf.layers.max_pooling2d(conv5, name='conv5_maxpool', **MAXPOOL_LAYER_PARAMS)
     conv5_dropout = tf.nn.dropout(conv5_maxpool, name='conv5_dropout', keep_prob=keep_prob_conv)
 
