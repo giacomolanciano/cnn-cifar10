@@ -155,7 +155,7 @@ def main(argv=None):
     output = tf.layers.dense(dense2_dropout, name='output', units=CIFAR10_CLASSES)
 
     # functions
-    loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=output, labels=y))
+    loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=output, labels=y))
     train_step = tf.train.AdamOptimizer(LEARNING_RATE).minimize(loss, global_step=global_step)
     accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(output, 1), tf.argmax(y, 1)), tf.float32), name='accuracy')
 
