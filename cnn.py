@@ -2,6 +2,7 @@ import pickle
 from datetime import timedelta
 
 import os
+import numpy as np
 import tensorflow as tf
 import time
 import matplotlib.pyplot as plt
@@ -114,6 +115,11 @@ def dump_results(results, results_filename):
     pickle.dump(results, open(results_filename, 'wb'))
 
 
+def get_random_batch(X, y, batch_size):
+    indices = np.random.choice(len(X), size=batch_size, replace=False)
+    return X[indices, :, :, :], y[indices, :]
+
+
 def main(argv=None):
     tf.reset_default_graph()
 
@@ -166,10 +172,11 @@ def main(argv=None):
         sess.run(tf.global_variables_initializer())
 
         # load training dataset
-        train_dataset = load_dataset(
-            TRAINING_SET_PATH, shuffle_buffer=CIFAR10_TRAIN_SIZE // 2, batch_size=BATCH_SIZE, repeat=-1)
-        iterator = train_dataset.make_one_shot_iterator()
-        next_elem = iterator.get_next()
+        # train_dataset = load_dataset(
+        #     TRAINING_SET_PATH, shuffle_buffer=CIFAR10_TRAIN_SIZE // 2, batch_size=BATCH_SIZE, repeat=-1)
+        # iterator = train_dataset.make_one_shot_iterator()
+        # next_elem = iterator.get_next()
+        (X_train, y_train), (X_test, y_test) = tf.keras.datasets.cifar10.load_data()
 
         # training sessions
         model_saver = tf.train.Saver()
@@ -180,16 +187,17 @@ def main(argv=None):
 
             # get batch from dataset
             try:
-                X_batch, y_batch = sess.run(next_elem)
+                # X_train_batch, y_train_batch = sess.run(next_elem)
+                X_train_batch, y_train_batch = get_random_batch(X_train, y_train, BATCH_SIZE)
 
                 # train network
                 sess.run(train_step, feed_dict={
-                    X: X_batch, y: y_batch, keep_prob_dense: KEEP_PROB_DENSE, keep_prob_conv: KEEP_PROB_CONV})
+                    X: X_train_batch, y: y_train_batch, keep_prob_dense: KEEP_PROB_DENSE, keep_prob_conv: KEEP_PROB_CONV})
 
                 # compute accuracy
                 if epoch % ACCURACY_SAMPLING == 0 or epoch == EPOCHS - 1:
                     epoch_accuracy = sess.run(accuracy, feed_dict={
-                        X: X_batch, y: y_batch, keep_prob_dense: 1.0, keep_prob_conv: 1.0})
+                        X: X_train_batch, y: y_train_batch, keep_prob_dense: 1.0, keep_prob_conv: 1.0})
                     training_accuracy_curve.append(epoch_accuracy)
                     print('accuracy: {}'.format(epoch_accuracy))
 
@@ -211,16 +219,18 @@ def main(argv=None):
 
         print('\n\n##### Validation #####')
         # load test dataset
-        test_dataset = load_dataset(TEST_SET_PATH, batch_size=BATCH_SIZE)
-        iterator = test_dataset.make_one_shot_iterator()
-        next_elem = iterator.get_next()
+        # test_dataset = load_dataset(TEST_SET_PATH, batch_size=BATCH_SIZE)
+        # iterator = test_dataset.make_one_shot_iterator()
+        # next_elem = iterator.get_next()
 
         test_accuracy_curve = []
         try:
             while True:
-                X_test, y_test = sess.run(next_elem)
+                # X_test_batch, y_test_batch = sess.run(next_elem)
+                X_test_batch, y_test_batch = get_random_batch(X_test, y_test, BATCH_SIZE)
+                
                 test_accuracy = sess.run(accuracy, feed_dict={
-                    X: X_test, y: y_test, keep_prob_dense: 1.0, keep_prob_conv: 1.0})
+                    X: X_test_batch, y: y_test_batch, keep_prob_dense: 1.0, keep_prob_conv: 1.0})
                 test_accuracy_curve.append(test_accuracy)
         except tf.errors.OutOfRangeError:
             print('Test set has been consumed.')
