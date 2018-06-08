@@ -6,53 +6,42 @@ TRAINING_SET_PATH = 'cifar10_train.tfrecord'
 TEST_SET_PATH = 'cifar10_test.tfrecord'
 
 
-def _create_entry(sample, sample_label):
+def _write_entries(images, labels, tfrecord_writer):
 
     # init computation graph
     tf.reset_default_graph()
-    image = tf.placeholder(dtype=tf.uint16)
-    encode = tf.image.encode_png(image, name='encoding')
-
+    image_ph = tf.placeholder(dtype=tf.uint8)
+    encode = tf.image.encode_png(image_ph, name='encoding')
+   
     with tf.Session() as sess:
-        height = tf.train.Feature(
-            int64_list=tf.train.Int64List(value=[sample.shape[0]]))
-        width = tf.train.Feature(
-            int64_list=tf.train.Int64List(value=[sample.shape[1]]))
-        channels = tf.train.Feature(
-            int64_list=tf.train.Int64List(value=[sample.shape[2]]))
-        label = tf.train.Feature(
-            int64_list=tf.train.Int64List(value=[sample_label]))
-        encoding = tf.train.Feature(
-            bytes_list=tf.train.BytesList(value=[sess.run(encode, feed_dict={image: sample})]))
+        for index in range(images.shape[0]):
+            image = images[index]
+            label = labels[index]
 
-    # create dataset entry
-    entry = tf.train.Example(
-        features=tf.train.Features(
-            feature={
-                'height': height,
-                'width': width,
-                'channels': channels,
-                'label': label,
-                'encoding': encoding
-            }
-        )
-    )
-    return entry
+            label = tf.train.Feature(
+                int64_list=tf.train.Int64List(value=label))
+            encoding = tf.train.Feature(
+                bytes_list=tf.train.BytesList(value=[sess.run(encode, feed_dict={image_ph: image})]))
+
+            # create dataset entry
+            entry = tf.train.Example(
+                features=tf.train.Features(
+                    feature={
+                        'label': label,
+                        'encoding': encoding
+                    }
+                )
+            )
+            tfrecord_writer.write(entry.SerializeToString())
 
 
 def to_tfrecord(X_train, y_train, X_test, y_test):
 
     with tf.python_io.TFRecordWriter(TRAINING_SET_PATH) as writer:
-        for index in range(X_train.shape[0]):
-            sample = np.squeeze(X_train[index])
-            label = np.squeeze(y_train[index])
-            writer.write(_create_entry(sample, label).SerializeToString())
-
-    with tf.python_io.TFRecordWriter(TEST_SET_PATH) as writer:
-        for index in range(X_test.shape[0]):
-            sample = np.squeeze(X_test[index])
-            label = np.squeeze(y_test[index])
-            writer.write(_create_entry(sample, label).SerializeToString())
+        _write_entries(X_train, y_train, writer)
+    
+    with tf.python_io.TFRecordWriter(TRAINING_SET_PATH) as writer:
+        _write_entries(X_test, y_test, writer)
 
 
 if __name__ == '__main__':
