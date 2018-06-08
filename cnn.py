@@ -114,7 +114,7 @@ def dump_results(results, results_filename):
     pickle.dump(results, open(results_filename, 'wb'))
 
 
-def main(argv=None):
+def main():
     tf.reset_default_graph()
 
     # variables
@@ -242,4 +242,4 @@ def main(argv=None):
 
 
 if __name__ == '__main__':
-    tf.app.run()
+    main()
