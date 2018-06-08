@@ -230,7 +230,7 @@ def main(argv=None):
 
         test_accuracy_curve = []
         try:
-            while True:
+            for i in range(CIFAR10_TEST_SIZE // BATCH_SIZE):
                 # X_test_batch, y_test_batch = sess.run(next_elem)
                 X_test_batch, y_test_batch = get_random_batch(X_test, y_test, BATCH_SIZE)
                 y_test_batch = get_one_hot(y_test_batch, CIFAR10_CLASSES)
