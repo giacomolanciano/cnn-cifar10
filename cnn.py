@@ -189,6 +189,7 @@ def main(argv=None):
             try:
                 # X_train_batch, y_train_batch = sess.run(next_elem)
                 X_train_batch, y_train_batch = get_random_batch(X_train, y_train, BATCH_SIZE)
+                y_train_batch = tf.one_hot(y_train_batch, depth=CIFAR10_CLASSES, dtype=tf.float32)
 
                 # train network
                 sess.run(train_step, feed_dict={
@@ -228,6 +229,7 @@ def main(argv=None):
             while True:
                 # X_test_batch, y_test_batch = sess.run(next_elem)
                 X_test_batch, y_test_batch = get_random_batch(X_test, y_test, BATCH_SIZE)
+                y_test_batch = tf.one_hot(y_test_batch, depth=CIFAR10_CLASSES, dtype=tf.float32)
                 
                 test_accuracy = sess.run(accuracy, feed_dict={
                     X: X_test_batch, y: y_test_batch, keep_prob_dense: 1.0, keep_prob_conv: 1.0})
