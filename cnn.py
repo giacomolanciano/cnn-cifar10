@@ -62,6 +62,7 @@ DENSE_LAYER_PARAMS_2 = {
 MODEL_CHECKPOINT_SAMPLING = 100
 ACCURACY_SAMPLING = 10
 CHECKPOINT_FILENAME = 'cnn.ckpt'
+LOGS_DIRNAME = 'logs'
 
 
 def _parse_dataset_features(entry):
@@ -161,15 +162,19 @@ def main():
 
     ####################################################################################################################
 
-    RESULTS_DIR = make_results_dir()
+    results_dir = make_results_dir()
     with tf.Session() as sess:
+        train_writer = tf.summary.FileWriter(LOGS_DIRNAME, sess.graph)
+        train_writer.add_graph(tf.get_default_graph())
+        
+        # init variables
         sess.run(tf.global_variables_initializer())
 
         # load training dataset
         train_dataset = load_dataset(
             TRAINING_SET_PATH, shuffle_buffer=CIFAR10_TRAIN_SIZE // 2, batch_size=BATCH_SIZE, repeat=-1)
         iterator = train_dataset.make_one_shot_iterator()
-        next_elem = iterator.get_next()
+        next_batch = iterator.get_next()
 
         # training sessions
         model_saver = tf.train.Saver()
@@ -180,22 +185,22 @@ def main():
 
             # get batch from dataset
             try:
-                X_batch, y_batch = sess.run(next_elem)
+                X_train_batch, y_train_batch = sess.run(next_batch)
 
                 # train network
                 sess.run(train_step, feed_dict={
-                    X: X_batch, y: y_batch, keep_prob_dense: KEEP_PROB_DENSE, keep_prob_conv: KEEP_PROB_CONV})
+                    X: X_train_batch, y: y_train_batch, keep_prob_dense: KEEP_PROB_DENSE, keep_prob_conv: KEEP_PROB_CONV})
 
                 # compute accuracy
                 if epoch % ACCURACY_SAMPLING == 0 or epoch == EPOCHS - 1:
                     epoch_accuracy = sess.run(accuracy, feed_dict={
-                        X: X_batch, y: y_batch, keep_prob_dense: 1.0, keep_prob_conv: 1.0})
+                        X: X_train_batch, y: y_train_batch, keep_prob_dense: 1.0, keep_prob_conv: 1.0})
                     training_accuracy_curve.append(epoch_accuracy)
                     print('accuracy: {}'.format(epoch_accuracy))
 
                 # dump current state
                 if epoch % MODEL_CHECKPOINT_SAMPLING == 0 or epoch == EPOCHS - 1:
-                    checkpoint_path = os.path.join(RESULTS_DIR, CHECKPOINT_FILENAME)
+                    checkpoint_path = os.path.join(results_dir, CHECKPOINT_FILENAME)
                     model_saver.save(sess, checkpoint_path, global_step=epoch)
 
             except tf.errors.OutOfRangeError:
@@ -205,7 +210,7 @@ def main():
         elapsed_time = (time.time() - start_time)
         training_time = timedelta(seconds=elapsed_time)
         print('training time:', training_time)
-        plot_curve(training_accuracy_curve, fig_name=os.path.join(RESULTS_DIR, 'train_accuracy'))
+        plot_curve(training_accuracy_curve, fig_name=os.path.join(results_dir, 'train_accuracy'))
 
         ################################################################################################################
 
@@ -213,19 +218,19 @@ def main():
         # load test dataset
         test_dataset = load_dataset(TEST_SET_PATH, batch_size=BATCH_SIZE)
         iterator = test_dataset.make_one_shot_iterator()
-        next_elem = iterator.get_next()
+        next_batch = iterator.get_next()
 
         test_accuracy_curve = []
         try:
             while True:
-                X_test, y_test = sess.run(next_elem)
+                X_test_batch, y_test_batch = sess.run(next_batch)
                 test_accuracy = sess.run(accuracy, feed_dict={
-                    X: X_test, y: y_test, keep_prob_dense: 1.0, keep_prob_conv: 1.0})
+                    X: X_test_batch, y: y_test_batch, keep_prob_dense: 1.0, keep_prob_conv: 1.0})
                 test_accuracy_curve.append(test_accuracy)
         except tf.errors.OutOfRangeError:
             print('Test set has been consumed.')
 
-        plot_curve(test_accuracy_curve, fig_name=os.path.join(RESULTS_DIR, 'test_accuracy'))
+        plot_curve(test_accuracy_curve, fig_name=os.path.join(results_dir, 'test_accuracy'))
         test_accuracy = sess.run(tf.reduce_mean(tf.convert_to_tensor(test_accuracy_curve)))
         print('avg test accuracy:', test_accuracy)
 
@@ -238,7 +243,7 @@ def main():
             'test_accuracy_curve': test_accuracy_curve,
             'avg_test_accuracy': test_accuracy
         }
-        dump_results(results, os.path.join(RESULTS_DIR, 'results.pickle'))
+        dump_results(results, os.path.join(results_dir, 'results.pickle'))
 
 
 if __name__ == '__main__':
