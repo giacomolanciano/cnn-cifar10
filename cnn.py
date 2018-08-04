@@ -166,7 +166,7 @@ def main():
     with tf.Session() as sess:
         train_writer = tf.summary.FileWriter(LOGS_DIRNAME, sess.graph)
         train_writer.add_graph(tf.get_default_graph())
-        
+
         # init variables
         sess.run(tf.global_variables_initializer())
 
