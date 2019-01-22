@@ -12,7 +12,7 @@ def _write_entries(images, labels, tfrecord_writer):
     tf.reset_default_graph()
     image_ph = tf.placeholder(dtype=tf.uint8)
     encode = tf.image.encode_png(image_ph, name='encoding')
-   
+
     with tf.Session() as sess:
         for index in range(images.shape[0]):
             image = images[index]
@@ -39,11 +39,12 @@ def to_tfrecord(X_train, y_train, X_test, y_test):
 
     with tf.python_io.TFRecordWriter(TRAINING_SET_PATH) as writer:
         _write_entries(X_train, y_train, writer)
-    
-    with tf.python_io.TFRecordWriter(TRAINING_SET_PATH) as writer:
+
+    with tf.python_io.TFRecordWriter(TEST_SET_PATH) as writer:
         _write_entries(X_test, y_test, writer)
 
 
 if __name__ == '__main__':
+    # original labels are expressed as integers (no one-hot encoding)
     (X_train_, y_train_), (X_test_, y_test_) = tf.keras.datasets.cifar10.load_data()
     to_tfrecord(X_train_, y_train_, X_test_, y_test_)
